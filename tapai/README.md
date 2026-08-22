@@ -39,7 +39,16 @@ Alternativ:
 winget install -e --id Python.Python.3.12
 ```
 
-Brauzerdə: http://127.0.0.1:8088
+Brauzerdə: http://127.0.0.1:8088 — səhifənin altında **Telefon / veb kamera** paneli var.
+
+Telefondan (eyni WiFi):
+
+1. `start.bat` indi `0.0.0.0`-də dinləyir
+2. Kompüterdə `ipconfig` → IPv4
+3. Telefonda `http://192.168.x.x:8088`
+4. Canlı kamera HTTP-də bloklana bilər — **Axtarış fotosu seç / çək** işləyir
+
+## macOS / Linux
 
 Repo artıq kompüterindədirsə ev qovluğundan `cd tapai` yazma. Əvəzinə n8n qovluğuna gir:
 
@@ -76,8 +85,10 @@ Vacib test: fusion rejimində açar qaşıqdan üstündür; yalnız-material rej
 | GET | `/api/home` | ev xəritəsi + heatmap |
 | GET | `/api/items` | qeydiyyatlı əşyalar |
 | POST | `/api/items` | yeni əşya tanımaq |
-| POST | `/api/search` | `{"query":"açarımı tap","mode":"fusion"}` |
+| POST | `/api/items/{id}/photo` | referans foto |
+| POST | `/api/camera/search` | kadrda axtarış |
+| GET | `/api/camera/last-seen` | son görülmə |
 
 ## Bu addımda nə yoxdur?
 
-Real kamera, real BLE tag və fiziki spektral sensor. Ev **simulyasiyadır** — mühərrikin məntiqi isə realdır və növbəti addımda eyni API-yə sensorlar qoşulur.
+Real BLE tag, fiziki spektral sensor və YOLO/CLIP. Ev xəritəsi hələ **simulyasiyadır**. Kamera paneli isə sənin real şəklini müqayisə edir (rəng/məkan izi).

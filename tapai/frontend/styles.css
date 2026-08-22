@@ -111,3 +111,28 @@ button:hover { filter: brightness(1.08); }
 .bar > span { display: block; height: 100%; background: var(--copper); }
 .explain { margin: 8px 0 0; font-size: 12px; color: #d9cbb3; line-height: 1.4; }
 .conf { float: right; color: var(--best); font-variant-numeric: tabular-nums; }
+
+.camera-panel { min-height: 0; margin-top: 16px; }
+.cam-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0 0 14px; max-width: 72ch; }
+.camera-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+@media (max-width: 980px) { .camera-grid { grid-template-columns: 1fr; } }
+.viewfinder {
+  background: #0c0b0a; border: 1px solid #2c261f; border-radius: 10px; overflow: hidden; min-height: 240px;
+}
+.viewfinder video { display: block; width: 100%; height: auto; max-height: 420px; background: #000; }
+.cam-controls { display: flex; flex-direction: column; gap: 8px; }
+.cam-controls label { color: var(--muted); font-size: 12px; }
+.cam-controls button, .file-btn {
+  width: 100%; text-align: center; cursor: pointer;
+}
+.file-btn {
+  display: block; background: #241e18; color: var(--ink); border: 1px dashed var(--line);
+  border-radius: 8px; padding: 10px 12px; font-weight: 600;
+}
+.cam-result {
+  min-height: 3.2em; margin: 6px 0 0; padding: 10px; border-radius: 8px;
+  background: #201b16; border: 1px solid var(--line); font-size: 14px; line-height: 1.4;
+}
+.cam-result.found { border-color: #3d6a3c; }
+.cam-result.maybe { border-color: var(--copper); }
+.cam-result.miss { border-color: #5a4038; }

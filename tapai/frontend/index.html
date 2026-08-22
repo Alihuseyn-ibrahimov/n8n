@@ -13,7 +13,7 @@
         <span class="mark" aria-hidden="true"></span>
         <div>
           <h1>TapAI</h1>
-          <p>Material filtr + vizual iz + tag. Tək radar kifayət etmir.</p>
+          <p>Material filtr + vizual iz + kamera. Tək radar kifayət etmir.</p>
         </div>
       </div>
       <form id="search-form" class="search-bar">
@@ -59,6 +59,43 @@
         <ol id="hits" class="hits"></ol>
       </section>
     </main>
+
+    <section class="panel camera-panel">
+      <div class="map-head">
+        <h2>Telefon / veb kamera</h2>
+        <span id="cam-status">Kamera bağlıdır</span>
+      </div>
+      <p class="cam-note">
+        Əvvəl əşyanı <strong>yaxın planda</strong> çəkib tanı. Sonra şübhəli yerə tutub axtar.
+        Bu, real şəkildir — amma hələ YOLO deyil: rəng/məkan izi müqayisə olunur.
+        Uzaq otaq kadrında kiçik açar tez-tez görünməz. Telefonda canlı yayım HTTP-də
+        bloklana bilər; o zaman aşağıdakı “Kameradan foto” işləyir.
+      </p>
+      <div class="camera-grid">
+        <div class="viewfinder">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <canvas id="cam-canvas" hidden></canvas>
+        </div>
+        <div class="cam-controls">
+          <label>Hansı əşya?</label>
+          <select id="cam-item"></select>
+          <button type="button" id="cam-start">Kameranı aç</button>
+          <button type="button" id="cam-enroll">Bu kadrı referans et</button>
+          <button type="button" id="cam-search">Bu kadrda axtar</button>
+          <label class="file-btn">
+            Referans foto seç / çək
+            <input id="cam-file-enroll" type="file" accept="image/*" capture="environment" hidden />
+          </label>
+          <label class="file-btn">
+            Axtarış fotosu seç / çək
+            <input id="cam-file-search" type="file" accept="image/*" capture="environment" hidden />
+          </label>
+          <p id="cam-result" class="cam-result">Nəticə burada çıxacaq.</p>
+          <h3>Son görüldüyü yer</h3>
+          <ol id="last-seen" class="hits"></ol>
+        </div>
+      </div>
+    </section>
   </div>
   <script src="/static/app.js"></script>
 </body>

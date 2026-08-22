@@ -40,6 +40,8 @@ class PhysicalObject:
     hidden_note: str = ""
     spectrum: np.ndarray = field(default_factory=lambda: np.zeros(16))
     visual: np.ndarray = field(default_factory=lambda: np.zeros(32))
+    photo_fp: np.ndarray | None = None
+    has_photo: bool = False
 
     def public_dict(self) -> dict[str, Any]:
         family = MATERIAL_FAMILIES[self.material]
@@ -58,6 +60,7 @@ class PhysicalObject:
             "y": self.y,
             "color_rgb": list(self.color_rgb),
             "has_tag": bool(self.tag_id),
+            "has_photo": self.has_photo,
             "enrolled": self.enrolled,
             "hidden_note": self.hidden_note,
         }

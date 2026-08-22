@@ -73,11 +73,12 @@ Kiçik tag əşyaya yapışır (unikal ID). Evdə 2–3 anker otaq-səviyyəli y
 | Model | Giriş | Çıxış | İndi |
 |---|---|---|---|
 | Material klassifikatoru | 16 kanallı simulyasiya spektri (induktiv + dielektrik + NIR + mmWave) | `brass`, `steel`, `leather`… | Prototipə ən yaxın spektr (cosine) |
-| Vizual iz | şəkil və ya rəng/tekstur vektoru | oxşarlıq skoru | Histogram + kateqoriya |
+| Vizual iz | şəkil və ya rəng/tekstur vektoru | oxşarlıq skoru | Demo: histogram. Kamera: real foto izi + kadr pəncərələri |
+| Kamera axtarışı | referans foto + cari kadr | found / maybe / miss + son görülmə | Pillow; YOLO/CLIP yoxdur |
 | Sorğu NLP | “açarımı tap”, “cüzdan haradadır” | əşya / kateqoriya | Qayda + lüğət |
 | Fusion | 4 skoru | yekun inam + izah | Çəki cəmi |
 
-Gələcəkdə CLIP/YOLO əsl şəkillər üçün əlavə olunur. İndi ağır GPU modeli yoxdur: məntiqi və test oluna bilən mühərrik var.
+Gələcəkdə CLIP/YOLO kiçik əşyanı geniş kadrda tapmağı yaxşılaşdırar. İndi ağır GPU modeli yoxdur.
 
 ## 6. Addım-addım yol xəritəsi
 
@@ -95,11 +96,12 @@ Bu sənəd. Materialın filtr olduğu qəbul edilir.
 - “Yalnız material” vs “Fusion” müqayisəsi
 - API + veb UI + testlər
 
-### Addım 2 — Real kamera
+### Addım 2 — Real kamera (bu PR-də)
 
-- Telefonda obyekt deteksiyası (açar, cüzdan, telefon)
-- Materialı görüntüdən təxmin etmək
-- “Son görüldüyü yer” tarixçəsi
+- Referans foto (yaxın plan) + kadrda axtarış
+- Telefonda `capture` ilə şəkil (HTTP-də canlı kamera bloklana bilər)
+- “Son görüldüyü yer” (vaxt, istəsən GPS)
+- Dürüst limit: kiçik açar uzaq otaq şəklində tez-tez tapılmır
 
 ### Addım 3 — Tag prototipi
 

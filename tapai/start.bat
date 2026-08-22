@@ -37,10 +37,12 @@ python -m pip install --prefer-binary --only-binary=:all: -r requirements.txt
 if errorlevel 1 goto :pip_fail
 
 echo.
-echo  Brauzerde ac:  http://127.0.0.1:8088
+echo  Komputer:  http://127.0.0.1:8088
+echo  Telefon:   eyni WiFi-da kompüterin IPv4 unvani + :8088  (ipconfig)
 echo  Dayandirmaq ucun bu pencerede Ctrl+C
+echo  Qeyd: telefonda canli kamera HTTP-de bloklana biler; "Axtaris fotosu" duymesi ishleyir.
 echo.
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8088 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8088 --reload
 echo.
 pause
 exit /b 0
