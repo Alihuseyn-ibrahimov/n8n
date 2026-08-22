@@ -18,7 +18,7 @@ from .simulator import ROOMS, HomeSimulator
 
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 home = HomeSimulator()
-get_classifier()  # train once at import so the first request is fast
+get_classifier()
 
 app = FastAPI(
     title="TapAI",

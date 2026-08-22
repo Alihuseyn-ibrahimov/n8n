@@ -16,8 +16,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
 
 BANDS = 16
 RNG_SEED = 42
@@ -132,44 +130,17 @@ class MaterialGuess:
 
 
 class MaterialClassifier:
-    """Random forest over synthetic spectra. Trained once at startup."""
-
-    def __init__(self, samples_per_class: int = 80, noise: float = 0.05) -> None:
-        self.labels = list(PROTOTYPES.keys())
-        self.encoder = LabelEncoder()
-        self.model = RandomForestClassifier(
-            n_estimators=80,
-            max_depth=8,
-            random_state=RNG_SEED,
-            n_jobs=1,
-        )
-        self._fit(samples_per_class, noise)
-
-    def _fit(self, samples_per_class: int, noise: float) -> None:
-        rng = np.random.default_rng(RNG_SEED)
-        X: list[np.ndarray] = []
-        y: list[str] = []
-        for label in self.labels:
-            for _ in range(samples_per_class):
-                X.append(noisy_signature(label, rng, noise=noise))
-                y.append(label)
-        y_enc = self.encoder.fit_transform(y)
-        self.model.fit(np.vstack(X), y_enc)
+    """Nearest prototype in the 16-band space. No sklearn, no training step."""
 
     def predict(self, spectrum: np.ndarray) -> MaterialGuess:
-        x = np.asarray(spectrum, dtype=np.float64).reshape(1, -1)
-        proba = self.model.predict_proba(x)[0]
-        idx = int(np.argmax(proba))
-        material = str(self.encoder.inverse_transform([idx])[0])
-        probs = {
-            str(self.encoder.inverse_transform([i])[0]): float(p)
-            for i, p in enumerate(proba)
-        }
+        scores = {label: cosine(spectrum, proto) for label, proto in PROTOTYPES.items()}
+        material = max(scores, key=scores.get)
+        total = sum(scores.values()) or 1.0
         return MaterialGuess(
             material=material,
             family=MATERIAL_FAMILIES[material],
-            confidence=float(proba[idx]),
-            probabilities=probs,
+            confidence=float(scores[material]),
+            probabilities={label: float(score / total) for label, score in scores.items()},
         )
 
 

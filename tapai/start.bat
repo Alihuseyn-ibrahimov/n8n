@@ -15,6 +15,15 @@ if not defined PY_CMD where python3 >nul 2>&1 && set "PY_CMD=python3"
 
 if not defined PY_CMD goto :no_python
 
+REM Broken half-install from a previous numpy source build.
+if exist ".venv\Scripts\python.exe" (
+  ".venv\Scripts\python.exe" -c "import numpy" >nul 2>&1
+  if errorlevel 1 (
+    echo Kohne .venv silinir ^(numpy qurulmamisti^)...
+    rmdir /s /q .venv
+  )
+)
+
 if not exist ".venv\Scripts\python.exe" (
   echo Virtual muhit yaradilir...
   %PY_CMD% -m venv .venv
@@ -22,9 +31,9 @@ if not exist ".venv\Scripts\python.exe" (
 )
 
 call ".venv\Scripts\activate.bat"
-python -m pip install --upgrade pip
-echo Paketler qurulur (birinci defe bir az ceke biler)...
-python -m pip install -r requirements.txt
+
+echo Paketler qurulur (yalniz hazir Windows wheel, menbe yigma yoxdur)...
+python -m pip install --prefer-binary --only-binary=:all: -r requirements.txt
 if errorlevel 1 goto :pip_fail
 
 echo.
@@ -57,6 +66,11 @@ pause
 exit /b 1
 
 :pip_fail
+echo.
 echo  [XETA] Paketler qurulmadi.
+echo  Ehmal ki Python cox yenidir ve numpy ucun wheel yoxdur.
+echo  Python 3.12 qur, sonra bu qovluqda .venv-i silib start.bat-i yeniden ishlet:
+echo     rmdir /s /q .venv
+echo     winget install -e --id Python.Python.3.12
 pause
 exit /b 1

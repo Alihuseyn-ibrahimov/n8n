@@ -72,7 +72,7 @@ Kiçik tag əşyaya yapışır (unikal ID). Evdə 2–3 anker otaq-səviyyəli y
 
 | Model | Giriş | Çıxış | İndi |
 |---|---|---|---|
-| Material klassifikatoru | 16 kanallı simulyasiya spektri (induktiv + dielektrik + NIR + mmWave) | `brass`, `steel`, `leather`… | Sintetik data + sklearn |
+| Material klassifikatoru | 16 kanallı simulyasiya spektri (induktiv + dielektrik + NIR + mmWave) | `brass`, `steel`, `leather`… | Prototipə ən yaxın spektr (cosine) |
 | Vizual iz | şəkil və ya rəng/tekstur vektoru | oxşarlıq skoru | Histogram + kateqoriya |
 | Sorğu NLP | “açarımı tap”, “cüzdan haradadır” | əşya / kateqoriya | Qayda + lüğət |
 | Fusion | 4 skoru | yekun inam + izah | Çəki cəmi |
