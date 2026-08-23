@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'channels',
     'assistant',
     'inbox',
+    'customers',
 ]
 
 MIDDLEWARE = [
