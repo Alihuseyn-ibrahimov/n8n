@@ -139,7 +139,7 @@ CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'true' if DEBUG
 
 # --- LLM (Groq — pulsuz, OpenAI-uyğun tool-use API) ---
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
-ASSISTANT_MODEL = os.getenv('ASSISTANT_MODEL', 'llama-3.3-70b-versatile')
+ASSISTANT_MODEL = os.getenv('ASSISTANT_MODEL', 'openai/gpt-oss-120b')
 ASSISTANT_MAX_TOKENS = int(os.getenv('ASSISTANT_MAX_TOKENS', '1024'))
 
 # --- Meta (WhatsApp Cloud API + Instagram Messaging) ---
