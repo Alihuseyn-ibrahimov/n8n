@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Məlumatçı — AI üçün məlumat çıxarma</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <h1>Məlumatçı</h1>
+          <p>Lesson 5 · Human-Agent UI — scraping xammalını agentə verir, agent isə elanlara istinad edir.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <span id="source-badge" class="badge">mənbə gözləyir</span>
+        <button type="button" id="btn-fixture">Fayldan yığ</button>
+        <button type="button" id="btn-live" class="ghost">Real sayt</button>
+        <button type="button" id="btn-export" class="ghost">JSON yüklə</button>
+      </div>
+    </header>
+
+    <p id="banner" class="banner" hidden></p>
+
+    <ul class="patterns" aria-label="İnterfeys nümunələri">
+      <li><strong>Split canvas</strong> — sol: xammal, sağ: söhbət</li>
+      <li><strong>Grounded cavab</strong> — agent elan kartına istinad edir</li>
+      <li><strong>Suggestion chips</strong> — hazır suallar</li>
+      <li><strong>Human confirm</strong> — JSON export-dan əvvəl soruşur</li>
+    </ul>
+
+    <main class="grid">
+      <section class="panel listings-panel">
+        <div class="map-head">
+          <h2>Elanlar</h2>
+          <span id="list-status">yüklənir…</span>
+        </div>
+        <div id="stats" class="stats empty">Statistika burada çıxacaq.</div>
+        <ol id="listings" class="listings"></ol>
+      </section>
+
+      <section class="panel chat-panel">
+        <div class="map-head">
+          <h2>Agent</h2>
+          <span id="chat-status">elanlara əsaslanır</span>
+        </div>
+        <div id="chips" class="chips"></div>
+        <div id="thread" class="thread" role="log" aria-live="polite"></div>
+        <form id="chat-form" class="composer">
+          <input id="query" type="text" placeholder="məsələn: 50 minə nə var?" autocomplete="off" />
+          <button type="submit">Soruş</button>
+        </form>
+      </section>
+    </main>
+  </div>
+  <div id="confirm" class="modal" hidden>
+    <div class="modal-card">
+      <h3>JSON export</h3>
+      <p>Agent xammalı yükləməzdən əvvəl səndən icazə istəyir — human-in-the-loop.</p>
+      <div class="modal-actions">
+        <button type="button" id="confirm-no" class="ghost">Ləğv et</button>
+        <button type="button" id="confirm-yes">Bəli, yüklə</button>
+      </div>
+    </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+{
+  "createdAt": "2026-08-24T10:00:00.000Z",
+  "updatedAt": "2026-08-24T10:00:00.000Z",
+  "id": "n8nTurboAzMelumat01",
+  "name": "Turbo.az — AI xammal konveyeri",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1e2b3c4-d5e6-7890-ab12-cd34ef567801",
+      "name": "Əl ilə işə sal",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 340]
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/shared/turbo_sehife.html",
+        "options": {}
+      },
+      "id": "a1e2b3c4-d5e6-7890-ab12-cd34ef567802",
+      "name": "HTML faylı oxu",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [460, 340]
+    },
+    {
+      "parameters": {
+        "setAllData": true,
+        "sourceKey": "data",
+        "destinationKey": "data",
+        "options": {
+          "encoding": "utf8",
+          "jsonParse": false,
+          "keepSource": false
+        }
+      },
+      "id": "a1e2b3c4-d5e6-7890-ab12-cd34ef567803",
+      "name": "Binar → mətn",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "typeVersion": 1,
+      "position": [680, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = String($input.first().json.data || '');\nconst blocks = html.split(/class=\"products-i[^\"]*\"/).slice(1);\nconst elanlar = [];\nfor (const block of blocks) {\n  const ad = (block.match(/products-i__name\">([^<]*)/) || [])[1];\n  if (!ad || !ad.trim()) continue;\n  const qiymet = ((block.match(/products-i__price\">([^<]*)/) || [])[1] || '').trim();\n  const atributlar = ((block.match(/products-i__attributes\">([^<]*)/) || [])[1] || '').trim();\n  const yer_vaxt = ((block.match(/products-i__datetime\">([^<]*)/) || [])[1] || '').trim();\n  const href = ((block.match(/products-i__link\" href=\"([^\"]*)/) || [])[1] || '').trim();\n  elanlar.push({\n    ad: ad.trim(),\n    qiymet,\n    atributlar,\n    yer_vaxt,\n    seher: yer_vaxt.split(',')[0].trim(),\n    link: href ? (href.startsWith('http') ? href : 'https://turbo.az' + href) : '',\n  });\n}\nconst reqemler = elanlar.map(e => Number(String(e.qiymet).replace(/[^0-9]/g, ''))).filter(n => n > 0);\nconst ortalama = reqemler.length ? Math.round(reqemler.reduce((a, b) => a + b, 0) / reqemler.length) : 0;\nreturn [{\n  json: {\n    say: elanlar.length,\n    ortalama,\n    elanlar,\n  }\n}];"
+      },
+      "id": "a1e2b3c4-d5e6-7890-ab12-cd34ef567804",
+      "name": "Elanları tap və təmizlə",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 340]
+    },
+    {
+      "parameters": {
+        "fileName": "/data/shared/elanlar.json",
+        "options": {
+          "encoding": "utf8"
+        }
+      },
+      "id": "a1e2b3c4-d5e6-7890-ab12-cd34ef567805",
+      "name": "elanlar.json yaz",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [1120, 220]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst text = JSON.stringify(item.elanlar || [], null, 2);\nreturn [{ json: item, binary: { data: { data: Buffer.from(text, 'utf8').toString('base64'), mimeType: 'application/json', fileName: 'elanlar.json' } } }];"
+      },
+      "id": "a1e2b3c4-d5e6-7890-ab12-cd34ef567806",
+      "name": "JSON hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 220]
+    },
+    {
+      "parameters": {
+        "content": "## AI xammal konveyeri\n\nDərs 5, bölmə 7: [Vaxt] → [Saytı çək] → [Məlumatı tap] → [Təmizlə] → [Yadda saxla]\n\nBu nümunə lokal `shared/turbo_sehife.html` oxuyur (Cloudflare turbo.az-ı buradan bağlamasın deyə). Selector-lar dərsdəki kimidir: `.products-i__name`, `.products-i__price`.\n\nCanlı API üçün Məlumatçı-nı 8090-da işə salıb HTTP Request node-u `http://host.docker.internal:8090/api/listings` ünvanına qoş.",
+        "height": 300,
+        "width": 360
+      },
+      "id": "a1e2b3c4-d5e6-7890-ab12-cd34ef567807",
+      "name": "Qeyd",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 80]
+    }
+  ],
+  "connections": {
+    "Əl ilə işə sal": {
+      "main": [[{ "node": "HTML faylı oxu", "type": "main", "index": 0 }]]
+    },
+    "HTML faylı oxu": {
+      "main": [[{ "node": "Binar → mətn", "type": "main", "index": 0 }]]
+    },
+    "Binar → mətn": {
+      "main": [[{ "node": "Elanları tap və təmizlə", "type": "main", "index": 0 }]]
+    },
+    "Elanları tap və təmizlə": {
+      "main": [[{ "node": "JSON hazırla", "type": "main", "index": 0 }]]
+    },
+    "JSON hazırla": {
+      "main": [[{ "node": "elanlar.json yaz", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": true },
+  "pinData": {},
+  "versionId": "4e2affe6-bb1c-4ddc-92f9-dde0b7656797",
+  "triggerCount": 0,
+  "tags": []
+}
