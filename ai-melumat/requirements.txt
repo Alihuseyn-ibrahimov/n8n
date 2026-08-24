@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+beautifulsoup4
+requests
+pypdf
+pillow
+pydantic
+pytest
+httpx
