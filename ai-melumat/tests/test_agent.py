@@ -14,6 +14,7 @@ def test_budget_filters_and_cites():
     assert result["citations"]
     cited = [ELANLAR[i]["ad"] for i in result["citations"]]
     assert "Lada Vesta" in cited
+    assert "Chevrolet Malibu" in cited
     assert "Toyota Land Cruiser" not in cited
     assert "50 000" in result["text"] or "50000" in result["text"].replace(" ", "")
 

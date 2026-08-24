@@ -115,12 +115,12 @@ def answer(query: str, elanlar: list[dict[str, str]]) -> dict[str, Any]:
         if not hits:
             text = f"{manat_yaz(budget)} büdcəyə düşən elan tapılmadı. Orta bazar {manat_yaz(stats['ortalama'])} ətrafındadır."
             return {"text": text, "citations": [], "pattern": "grounded-summary"}
-        lines = [f"{i+1}. {e['ad']} — {e['qiymet']} ({e['seher']})" for i, e in enumerate(hits[:6])]
+        lines = [f"{i+1}. {e['ad']} — {e['qiymet']} ({e['seher']})" for i, e in enumerate(hits)]
         text = (
             f"{manat_yaz(budget)} büdcəyə **{len(hits)}** elan düşür:\n"
             + "\n".join(lines)
         )
-        return {"text": text, "citations": _cite(elanlar, hits[:6]), "pattern": "citation-card"}
+        return {"text": text, "citations": _cite(elanlar, hits), "pattern": "citation-card"}
 
     if any(k in q for k in ("0 km", "0km", "yeni", "sıfır", "sifir")):
         hits = [e for e in elanlar if "0 km" in (e.get("atributlar") or "").lower()]

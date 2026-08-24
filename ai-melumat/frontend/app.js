@@ -90,7 +90,7 @@ function addMsg(role, text, extra = {}) {
   if (extra.elanlar && extra.elanlar.length) {
     const cite = document.createElement("div");
     cite.className = "cite";
-    extra.elanlar.slice(0, 6).forEach((e) => {
+    extra.elanlar.slice(0, 8).forEach((e) => {
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = `${e.ad} · ${e.qiymet}`;
