@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "ask_topic, question, stats, finished və ya reset"
+    },
+    "reply_text": { "type": "string" },
+    "score": { "type": "number" },
+    "question_number": { "type": "number" },
+    "topic": { "type": "string" },
+    "difficulty": { "type": "string" },
+    "is_correct": { "type": ["boolean", "null"] },
+    "game_over": { "type": "boolean" }
+  },
+  "required": [
+    "status",
+    "reply_text",
+    "score",
+    "question_number",
+    "topic",
+    "difficulty",
+    "game_over"
+  ]
+}

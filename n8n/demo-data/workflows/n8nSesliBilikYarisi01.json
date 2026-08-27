@@ -1,0 +1,803 @@
+{
+  "createdAt": "2026-08-27T16:00:00.000Z",
+  "updatedAt": "2026-08-27T16:00:00.000Z",
+  "id": "n8nSesliBilikYarisi01",
+  "name": "Səsli Bilik Yarışı (Telegram)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 1. Giriş kanalı\nTelegram həm mətn, həm səs qəbul edir.\nSəs → fayl endir → Whisper (az) → mətn.\nMətn birbaşa gedir.\n**Birləşdir (Merge, append)** — yalnız bir budaq gəlsə belə davam edir.",
+        "height": 320,
+        "width": 520,
+        "color": 5
+      },
+      "id": "note-giris",
+      "name": "Qeyd: giriş",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Oyun agenti\nLangChain Agent + OpenAI Chat Model.\nWindow Buffer Memory session key = `trivia_{chat_id}`.\nÇıxış Structured Output Parser ilə JSON-dur; Code node sahələri sabitləyir.",
+        "height": 300,
+        "width": 460,
+        "color": 6
+      },
+      "id": "note-agent",
+      "name": "Qeyd: agent",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Marşrut + TTS + yaddaş\nSwitch: mövzu sorğusu / yeni sual / statistika / oyun bitdi / təmizləndi.\nBitdi və sıfırlama → Chat Memory Manager bütün mesajları silir.\nSonra TTS və Telegram audio.",
+        "height": 300,
+        "width": 480,
+        "color": 4
+      },
+      "id": "note-route",
+      "name": "Qeyd: marşrut",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "node-tg-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "a7c3e91b-4d2f-4b6a-9e10-8c2f1d0b4e7a",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-voice",
+              "leftValue": "={{ !!($json.message.voice || $json.message.audio) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "node-if-voice",
+      "name": "Səs mesajıdır?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $json.message.voice?.file_id || $json.message.audio?.file_id }}",
+        "download": true,
+        "additionalFields": {
+          "mimeType": "audio/ogg"
+        }
+      },
+      "id": "node-tg-getfile",
+      "name": "Səs faylını endir",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        500,
+        220
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "data",
+        "options": {
+          "language": "az"
+        }
+      },
+      "id": "node-whisper",
+      "name": "Whisper (STT)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        740,
+        220
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "asg-voice-text",
+              "name": "user_text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-voice-chat",
+              "name": "chat_id",
+              "value": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-voice-session",
+              "name": "session_key",
+              "value": "={{ 'trivia_' + String($('Telegram Trigger').item.json.message.chat.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-voice-source",
+              "name": "source",
+              "value": "voice",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-voice",
+      "name": "Səs → mətn",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        980,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "asg-text-text",
+              "name": "user_text",
+              "value": "={{ $json.message.text || $json.message.caption || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-text-chat",
+              "name": "chat_id",
+              "value": "={{ String($json.message.chat.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-text-session",
+              "name": "session_key",
+              "value": "={{ 'trivia_' + String($json.message.chat.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "asg-text-source",
+              "name": "source",
+              "value": "text",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-text",
+      "name": "Mətn mesajı",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      },
+      "id": "node-merge",
+      "name": "Birləşdir",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Sən Telegram üzərindən Azərbaycan dilində səsli bilik yarışı (viktorina) aparan hakimsən.\nBütün reply_text sahəsi TTS ilə səsə çevriləcək — markdown, emoji, ulduz, hashtag istifadə etmə.\nCavabın YALNIZ bir JSON obyekti olmalıdır (əlavə mətn, izah və ya code fence yoxdur). JSON sözünü və aşağıdakı sahələri həmişə doldur.\n\nSahələr:\n- status: \"ask_topic\" | \"question\" | \"stats\" | \"finished\" | \"reset\"\n- reply_text: istifadəçiyə səslə oxunacaq Azərbaycan mətni\n- score: indiyədək düzgün cavab sayı (0-10 tam ədəd)\n- question_number: hazırda oynanan/soruşulan sualın nömrəsi (mövzu soruşulanda 0, birinci sualda 1, onuncu sualda 10)\n- topic: mövzu adı\n- difficulty: \"asən\" | \"orta\" | \"çətin\"\n- is_correct: sual cavabı qiymətləndiriləndə true və ya false, digər hallarda null\n- game_over: oyun bitibsə true, əks halda false\n\nOyun qaydaları:\n\n1) Sıfırlama. İstifadəçi istənilən vaxt bunlardan birini desə: təmizlə, sıfırla, yenidən başla, reset, /start, /reset\n   → status=\"reset\", score=0, question_number=0, topic=\"\", difficulty=\"\", is_correct=null, game_over=false.\n   reply_text oyunun sıfırlandığını desin və yenidən mövzu ilə çətinliyi soruşsun. Sual VERMƏ.\n\n2) İlk mesaj / mövzu hələ seçilməyib. Yaddaş boşdursa və ya mövzu yoxdursa sual VERMƏ.\n   → status=\"ask_topic\", question_number=0, score=0, is_correct=null, game_over=false.\n   Mövzu (məsələn tarix, coğrafiya, idman, elm, ümumi bilik) və səviyyəni (asən, orta, çətin) soruş.\n\n3) Mövzu seçimi. İstifadəçi mövzu və/və ya səviyyə deyəndə 1-ci sualı ver.\n   Aydın deyilsə default: topic=\"ümumi bilik\", difficulty=\"orta\".\n   → status=\"question\", question_number=1, score=0, is_correct=null, game_over=false.\n   reply_text qısa təsdiq + birinci sual.\n\n4) Cavab qiymətləndirmə. Aktiv suala cavab gələndə:\n   - Semantik çevik ol: qısa, sinonim, kiçik orfoqrafiya səhvi qəbul oluna bilər.\n   - Düzgündürsə score += 1, is_correct=true; səhvdirsə score eyni qalır, is_correct=false və qısa düzgün cavabı de.\n   - Əgər cavab verilən sual 10-cu DEYİLSƏ: növbəti sualı eyni reply_text-ə əlavə et, question_number += 1, status=\"question\", game_over=false.\n   - Eyni sualı təkrarlama; yaddaşdakı əvvəlki suallara bax.\n\n5) Oyunun sonu. 10-cu sualın cavabından sonra yeni sual VERMƏ.\n   → status=\"finished\", question_number=10, game_over=true, is_correct=true/false.\n   reply_text-də yekun: \"10 sualdan X-i düzgün cavablandırdınız\" və qısa rəy.\n   Yenidən oynamaq üçün mövzu seçməyi və ya sıfırlamağı təklif et.\n\n6) Statistika sorğusu. \"neçənci sualdayıq\", \"xalım nədir\", \"nəticəm\", \"hansı mövzudayıq\" kimi status sualları CAVAB DEYİL.\n   Qiymətləndirmə, score dəyişikliyi və sual dəyişikliyi YOXDUR.\n   → status=\"stats\", is_correct=null, game_over=false, eyni question_number və score.\n   reply_text-də cari statistika (sual N/10, xal, mövzu, səviyyə) və əgər aktiv sual varsa onu təkrarla.\n\n7) Suallar qısa və aydın olsun (bir cümləlik sual yetər). Cavab açığı tək fakt olsun.\n   reply_text TTS üçün təbii danışıq dili olsun, 4000 simvoldan qısa.\n",
+          "maxIterations": 4
+        }
+      },
+      "id": "node-agent",
+      "name": "Viktorina agenti",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1480,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "options": {
+          "temperature": 0.4,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "node-llm",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1380,
+        660
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ 'trivia_' + String($('Telegram Trigger').item.json.message.chat.id) }}",
+        "contextWindowLength": 30
+      },
+      "id": "node-memory-agent",
+      "name": "Söhbət yaddaşı",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1540,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"ask_topic, question, stats, finished və ya reset\"\n    },\n    \"reply_text\": {\n      \"type\": \"string\"\n    },\n    \"score\": {\n      \"type\": \"number\"\n    },\n    \"question_number\": {\n      \"type\": \"number\"\n    },\n    \"topic\": {\n      \"type\": \"string\"\n    },\n    \"difficulty\": {\n      \"type\": \"string\"\n    },\n    \"is_correct\": {\n      \"type\": [\n        \"boolean\",\n        \"null\"\n      ]\n    },\n    \"game_over\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"status\",\n    \"reply_text\",\n    \"score\",\n    \"question_number\",\n    \"topic\",\n    \"difficulty\",\n    \"game_over\"\n  ]\n}",
+        "autoFix": false
+      },
+      "id": "node-parser",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1720,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('Telegram Trigger').first().json;\nconst merged = $('Birləşdir').first().json;\nconst root = $input.first().json;\nlet data = root.output !== undefined ? root.output : root;\n\nif (typeof data === 'string') {\n  const trimmed = data.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '');\n  try {\n    data = JSON.parse(trimmed);\n  } catch (error) {\n    data = { status: 'ask_topic', reply_text: trimmed || 'Zəhmət olmasa təkrar edin.' };\n  }\n}\n\nif (data && typeof data === 'object' && data.output && typeof data.output === 'object' && data.output.status) {\n  data = data.output;\n}\n\nconst allowed = ['ask_topic', 'question', 'stats', 'finished', 'reset'];\nconst status = allowed.includes(data.status) ? data.status : 'ask_topic';\nlet replyText = String(data.reply_text || 'Zəhmət olmasa təkrar edin.');\nif (replyText.length > 4000) {\n  replyText = replyText.slice(0, 4000);\n}\n\nconst chatId = merged.chat_id || trigger.message?.chat?.id;\nreturn [{\n  json: {\n    status,\n    reply_text: replyText,\n    score: Number.isFinite(Number(data.score)) ? Number(data.score) : 0,\n    question_number: Number.isFinite(Number(data.question_number)) ? Number(data.question_number) : 0,\n    topic: String(data.topic || 'ümumi bilik'),\n    difficulty: String(data.difficulty || 'orta'),\n    is_correct: data.is_correct === true ? true : data.is_correct === false ? false : null,\n    game_over: Boolean(data.game_over) || status === 'finished',\n    chat_id: String(chatId),\n    session_key: merged.session_key || ('trivia_' + chatId),\n    user_text: merged.user_text || '',\n    source: merged.source || 'text',\n  }\n}];"
+      },
+      "id": "node-code",
+      "name": "JSON-i ayır",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rule-ask",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "ask_topic",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mövzu_sorğusu"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rule-q",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "question",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "yeni_sual"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rule-stats",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "stats",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "statistika"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rule-done",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "finished",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "oyun_bitdi"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rule-reset",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "reset",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "təmizləndi"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "digər"
+        }
+      },
+      "id": "node-switch",
+      "name": "Vəziyyətə görə yönləndir",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2000,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "delete",
+        "deleteMode": "all"
+      },
+      "id": "node-memory-mgr",
+      "name": "Yaddaşı təmizlə",
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "typeVersion": 1.1,
+      "position": [
+        2280,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ 'trivia_' + String($('Telegram Trigger').item.json.message.chat.id) }}",
+        "contextWindowLength": 30
+      },
+      "id": "node-memory-clear",
+      "name": "Yaddaş (silmək üçün)",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2280,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "generate",
+        "input": "={{ $('JSON-i ayır').item.json.reply_text }}",
+        "voice": "nova",
+        "options": {
+          "response_format": "mp3",
+          "binaryPropertyOutput": "data"
+        }
+      },
+      "id": "node-tts",
+      "name": "Səsə çevir (TTS)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2560,
+        400
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendAudio",
+        "chatId": "={{ $('JSON-i ayır').item.json.chat_id }}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "additionalFields": {
+          "caption": "=Sual {{ $('JSON-i ayır').item.json.question_number }}/10 · Xal: {{ $('JSON-i ayır').item.json.score }}",
+          "title": "Səsli Bilik Yarışı"
+        }
+      },
+      "id": "node-tg-audio",
+      "name": "Audio göndər",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2820,
+        400
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Səs mesajıdır?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Səs mesajıdır?": {
+      "main": [
+        [
+          {
+            "node": "Səs faylını endir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mətn mesajı",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Səs faylını endir": {
+      "main": [
+        [
+          {
+            "node": "Whisper (STT)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Whisper (STT)": {
+      "main": [
+        [
+          {
+            "node": "Səs → mətn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Səs → mətn": {
+      "main": [
+        [
+          {
+            "node": "Birləşdir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mətn mesajı": {
+      "main": [
+        [
+          {
+            "node": "Birləşdir",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Birləşdir": {
+      "main": [
+        [
+          {
+            "node": "Viktorina agenti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Viktorina agenti": {
+      "main": [
+        [
+          {
+            "node": "JSON-i ayır",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON-i ayır": {
+      "main": [
+        [
+          {
+            "node": "Vəziyyətə görə yönləndir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vəziyyətə görə yönləndir": {
+      "main": [
+        [
+          {
+            "node": "Səsə çevir (TTS)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Səsə çevir (TTS)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Səsə çevir (TTS)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Yaddaşı təmizlə",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Yaddaşı təmizlə",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Səsə çevir (TTS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yaddaşı təmizlə": {
+      "main": [
+        [
+          {
+            "node": "Səsə çevir (TTS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Səsə çevir (TTS)": {
+      "main": [
+        [
+          {
+            "node": "Audio göndər",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Viktorina agenti",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Söhbət yaddaşı": {
+      "ai_memory": [
+        [
+          {
+            "node": "Viktorina agenti",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Viktorina agenti",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yaddaş (silmək üçün)": {
+      "ai_memory": [
+        [
+          {
+            "node": "Yaddaşı təmizlə",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": "c1e8b4a0-9d27-4f1e-8a55-0b91c3d2e4f6",
+  "triggerCount": 0,
+  "tags": []
+}
