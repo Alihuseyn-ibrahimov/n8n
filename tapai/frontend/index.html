@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TapAI — itən əşya axtarışı</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <h1>TapAI</h1>
+          <p>Material filtr + vizual iz + kamera. Tək radar kifayət etmir.</p>
+        </div>
+      </div>
+      <form id="search-form" class="search-bar">
+        <input id="query" type="text" placeholder="məsələn: açarımı tap" autocomplete="off" />
+        <select id="mode" aria-label="Axtarış rejimi"></select>
+        <button type="submit">Axtar</button>
+      </form>
+    </header>
+
+    <p id="banner" class="banner" hidden></p>
+
+    <main class="grid">
+      <section class="panel">
+        <h2>Tanıdılmış əşyalar</h2>
+        <ul id="items" class="item-list"></ul>
+        <form id="enroll-form" class="enroll">
+          <h3>Yeni əşya tanı</h3>
+          <input id="enroll-name" placeholder="Ad (məs. ev açarı)" required />
+          <select id="enroll-category" required></select>
+          <select id="enroll-material" required></select>
+          <select id="enroll-room" required></select>
+          <label class="check"><input id="enroll-tag" type="checkbox" /> BLE tag əlavə et</label>
+          <button type="submit">Qeydiyyat</button>
+        </form>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="map-head">
+          <h2>Ev xəritəsi</h2>
+          <span id="map-status">Skan gözləyir</span>
+        </div>
+        <div id="floor" class="floor" role="img" aria-label="Ev planı"></div>
+        <p class="legend">
+          <span class="swatch heat"></span> metal/induktiv enerji
+          <span class="swatch hit"></span> namizəd
+          <span class="swatch best"></span> ən yaxşı uyğunluq
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Nəticələr</h2>
+        <div id="target-card" class="target empty">Sorğu göndər, və ya soldan əşya seç.</div>
+        <ol id="hits" class="hits"></ol>
+      </section>
+    </main>
+
+    <section class="panel camera-panel">
+      <div class="map-head">
+        <h2>Telefon / veb kamera</h2>
+        <span id="cam-status">Kamera bağlıdır</span>
+      </div>
+      <p class="cam-note">
+        Əvvəl əşyanı <strong>yaxın planda</strong> çəkib tanı. Sonra şübhəli yerə tutub axtar.
+        Bu, real şəkildir — amma hələ YOLO deyil: rəng/məkan izi müqayisə olunur.
+        Uzaq otaq kadrında kiçik açar tez-tez görünməz. Telefonda canlı yayım HTTP-də
+        bloklana bilər; o zaman aşağıdakı “Kameradan foto” işləyir.
+      </p>
+      <div class="camera-grid">
+        <div class="viewfinder">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <canvas id="cam-canvas" hidden></canvas>
+        </div>
+        <div class="cam-controls">
+          <label>Hansı əşya?</label>
+          <select id="cam-item"></select>
+          <button type="button" id="cam-start">Kameranı aç</button>
+          <button type="button" id="cam-enroll">Bu kadrı referans et</button>
+          <button type="button" id="cam-search">Bu kadrda axtar</button>
+          <label class="file-btn">
+            Referans foto seç / çək
+            <input id="cam-file-enroll" type="file" accept="image/*" capture="environment" hidden />
+          </label>
+          <label class="file-btn">
+            Axtarış fotosu seç / çək
+            <input id="cam-file-search" type="file" accept="image/*" capture="environment" hidden />
+          </label>
+          <p id="cam-result" class="cam-result">Nəticə burada çıxacaq.</p>
+          <h3>Son görüldüyü yer</h3>
+          <ol id="last-seen" class="hits"></ol>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
