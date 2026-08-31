@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hesab Toolkit — LangChain Alət Qutusu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="grain"></div>
+  <header class="top">
+    <div class="brand">
+      <span class="seal">03</span>
+      <div>
+        <p class="eyebrow">LangChain · Example Code (3)</p>
+        <h1>Hesab Alət Qutusu</h1>
+      </div>
+    </div>
+    <p class="lede">Agentin kilidli otağından çıxış xətti. İki tool, bir toolkit — vergi və endirim canlı hesablanır.</p>
+  </header>
+
+  <main>
+    <section class="desk">
+      <article class="plate vergi">
+        <div class="plate-head">
+          <span class="chip">@tool</span>
+          <h2>vergi_hesabla</h2>
+        </div>
+        <p class="desc">Məbləğ və faizdən vergi tutarını qaytarır.</p>
+        <label>Məbləğ (₼)
+          <input id="vergi-mebleg" type="number" min="0" step="0.01" value="200" />
+        </label>
+        <label>Vergi faizi (%)
+          <input id="vergi-faiz" type="number" step="0.01" value="18" />
+        </label>
+        <div class="actions">
+          <button type="button" id="vergi-btn">Tool-u çağır</button>
+          <button type="button" class="ghost" data-fill="vergi" data-m="200" data-f="18">Sınaq: 200 ₼ / 18%</button>
+        </div>
+      </article>
+
+      <article class="plate endirim">
+        <div class="plate-head">
+          <span class="chip warn">try / except</span>
+          <h2>endirim_tətbiq_et</h2>
+        </div>
+        <p class="desc">Endirimdən sonrakı qiyməti qaytarır. 100%-dən yuxarı faizdə çökmür.</p>
+        <label>Qiymət (₼)
+          <input id="endirim-qiymet" type="number" min="0" step="0.01" value="100" />
+        </label>
+        <label>Endirim faizi (%)
+          <input id="endirim-faiz" type="number" step="0.01" value="20" />
+        </label>
+        <div class="actions">
+          <button type="button" id="endirim-btn">Tool-u çağır</button>
+          <button type="button" class="ghost" data-fill="endirim" data-m="100" data-f="20">Sınaq: 100 ₼ / 20%</button>
+          <button type="button" class="ghost danger" data-fill="endirim" data-m="100" data-f="150">Sınaq: 150% xəta</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="console" aria-live="polite">
+      <div class="console-bar">
+        <span>invoke konsolu</span>
+        <button type="button" id="demo-btn">Tapşırığın 3 sınağını işlət</button>
+      </div>
+      <pre id="console">Hesab toolkit hazırdır.
+vergi_hesabla.invoke({"məbləğ": 200, "faiz": 18}) → ?
+endirim_tətbiq_et.invoke({"qiymət": 100, "faiz": 20}) → ?
+endirim_tətbiq_et.invoke({"qiymət": 100, "faiz": 150}) → ?</pre>
+      <div id="result" class="result idle">Nəticə burada görünəcək</div>
+    </section>
+
+    <section class="drawer">
+      <h3>hesab_toolkit</h3>
+      <p class="hint">for t in hesab_toolkit: print(t.name)</p>
+      <ul id="toolkit"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>Lokal sayt · LangChain tool-ları serverdə işləyir · NVIDIA LangChain / LangGraph dərs 3</p>
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

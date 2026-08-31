@@ -2,17 +2,17 @@
 
 İki tool: `vergi_hesabla` və `endirim_tətbiq_et`. Hər ikisi `hesab_toolkit` siyahısındadır.
 
+## Lokal sayt
+
 ```bash
 pip install -r requirements.txt
+python3 -m uvicorn web.app:app --app-dir nvidia-langchain-langgraph/03-tools --host 0.0.0.0 --port 8080
+```
+
+Aç: http://localhost:8080
+
+Konsol üçün:
+
+```bash
 python3 ev_tapshirigi.py
-```
-
-Gözlənilən nəticə:
-
-```
-36.0
-80.0
-Xəta: Endirim 100 faizdən çox ola bilməz.
-vergi_hesabla
-endirim_tətbiq_et
 ```

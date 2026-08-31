@@ -31,9 +31,11 @@ def endirim_tətbiq_et(qiymət: float, faiz: float):
 
 hesab_toolkit = [vergi_hesabla, endirim_tətbiq_et]
 
-print(vergi_hesabla.invoke({"məbləğ": 200, "faiz": 18}))
-print(endirim_tətbiq_et.invoke({"qiymət": 100, "faiz": 20}))
-print(endirim_tətbiq_et.invoke({"qiymət": 100, "faiz": 150}))
 
-for t in hesab_toolkit:
-    print(t.name)
+if __name__ == "__main__":
+    print(vergi_hesabla.invoke({"məbləğ": 200, "faiz": 18}))
+    print(endirim_tətbiq_et.invoke({"qiymət": 100, "faiz": 20}))
+    print(endirim_tətbiq_et.invoke({"qiymət": 100, "faiz": 150}))
+
+    for t in hesab_toolkit:
+        print(t.name)
