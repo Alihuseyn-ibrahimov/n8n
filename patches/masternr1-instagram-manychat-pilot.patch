@@ -1,0 +1,847 @@
+From 6dcf5a420af5f6dca9bb8bb351468428d70a21ed Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sun, 23 Aug 2026 16:46:34 +0000
+Subject: [PATCH] =?UTF-8?q?Add=20Instagram=20ManyChat=20live=20pilot=20for?=
+ =?UTF-8?q?=20Al=20Bal=C4=B1=20DM=20replies.?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Direct Instagram Graph API still needs Advanced Access, so the meeting
+demo uses ManyChat relay: seed_albali, webhook payload aliases, and a
+step-by-step INSTAGRAM_PILOT.md.
+---
+ masternr1/.env.example                        |   3 +
+ masternr1/CLAUDE.md                           |  10 +-
+ masternr1/DEMO_PITCH.md                       |  45 +++++
+ masternr1/INSTAGRAM_PILOT.md                  | 136 ++++++++++++++
+ masternr1/businesses/admin.py                 |  13 +-
+ .../commands/enable_instagram_relay.py        |  66 +++++++
+ .../management/commands/seed_albali.py        | 170 ++++++++++++++++++
+ .../management/commands/seed_masternr1.py     |  18 ++
+ masternr1/businesses/tests.py                 |  17 ++
+ masternr1/channels/manychat.py                |  53 ++++++
+ masternr1/channels/tests.py                   |  58 ++++++
+ masternr1/channels/views.py                   |  11 +-
+ masternr1/config/settings.py                  |   4 +
+ masternr1/start-instagram-tunnel.bat          |   3 +
+ 14 files changed, 600 insertions(+), 7 deletions(-)
+ create mode 100644 masternr1/DEMO_PITCH.md
+ create mode 100644 masternr1/INSTAGRAM_PILOT.md
+ create mode 100644 masternr1/businesses/management/commands/enable_instagram_relay.py
+ create mode 100644 masternr1/businesses/management/commands/seed_albali.py
+ create mode 100644 masternr1/channels/manychat.py
+ create mode 100644 masternr1/start-instagram-tunnel.bat
+
+diff --git a/masternr1/.env.example b/masternr1/.env.example
+index 6c9b4bb..0de5ddc 100644
+--- a/masternr1/.env.example
++++ b/masternr1/.env.example
+@@ -21,3 +21,6 @@ META_GRAPH_API_VERSION=v23.0
+ 
+ # Telegram bildirişləri
+ TELEGRAM_BOT_TOKEN=
++
++# Instagram ManyChat relay token .env-də DEYİL — Business.manychat_token
++# (seed_albali / enable_instagram_relay). Webhook: POST /webhook/manychat/
+diff --git a/masternr1/CLAUDE.md b/masternr1/CLAUDE.md
+index fe7e49c..f2d9124 100644
+--- a/masternr1/CLAUDE.md
++++ b/masternr1/CLAUDE.md
+@@ -9,8 +9,11 @@ bazasından cavab verir, randevu/qeydiyyat sorğusu yığır, lazım olanda oper
+ 
+ ## Vəziyyət
+ 
+-- Faza 1-4 **tamam**, 52/52 test keçir. Faza 5 (VPS deploy) qalır.
++- Faza 1-4 **tamam**. Faza 5 (VPS deploy) qalır.
+ - Uçdan-uca canlı WhatsApp axını bir dəfə tam təsdiqlənib (Meta test nömrəsi ilə).
++- **Canlı Instagram piloru:** birbaşa Graph API real DM-ləri ötürmür
++  (Advanced Access, DVX 2026-07-29). Görüş demo-su ManyChat relay +
++  `seed_albali` (`@al.bali.az`). Addımlar: `INSTAGRAM_PILOT.md`.
+ - **Aktiv pilot 1: Master NR 1 Tədris Mərkəzi** (magistratura/doktorantura/DQ hazırlıq,
+   WhatsApp). Təsisçidən razılıq var, görüş gözlənilir.
+ - **Aktiv pilot 2: DVX Tədris Mərkəzi** (vergi/mühasibatlıq təlimləri, Instagram DM).
+@@ -28,7 +31,7 @@ Bash tool-un cari qovluğu qorunmadığı üçün tam yol işlət:
+ ```bash
+ P="C:/Users/Alihuseyn Ibrahimov/PycharmProjects/Quantum/masternr1"
+ 
+-"$P/.venv/Scripts/python" "$P/manage.py" test          # 52 test
++"$P/.venv/Scripts/python" "$P/manage.py" test
+ "$P/.venv/Scripts/python" "$P/manage.py" migrate
+ "$P/.venv/Scripts/python" "$P/manage.py" makemigrations
+ "$P/.venv/Scripts/python" "$P/manage.py" runserver 8055
+@@ -40,6 +43,9 @@ PYTHONIOENCODING=utf-8 "$P/.venv/Scripts/python" "$P/manage.py" seed_masternr1
+ **Seed komandası** (yalnız lokal test, `DEPLOY.md`-yə daxil deyil):
+ - `seed_masternr1` — Master NR 1 tenant-ı (operator: `masternr1` / `demopass123`).
+   Qiymət/ünvan/FAQ sahələri PLACEHOLDER-dir — görüşdən sonra admin-dən doldurulur.
++- `seed_albali` — Al Balı Instagram DM piloru + ManyChat token
++  (operator: `albali` / `demopass123`).
++- `enable_instagram_relay --slug=...` — mövcud tenant-a ManyChat tokeni yazır.
+ 
+ ## Struktur
+ 
+diff --git a/masternr1/DEMO_PITCH.md b/masternr1/DEMO_PITCH.md
+new file mode 100644
+index 0000000..5bba40e
+--- /dev/null
++++ b/masternr1/DEMO_PITCH.md
+@@ -0,0 +1,45 @@
++# MasterNR1 — görüş demo (canlı Instagram)
++
++**Məqsəd:** 10 dəqiqədə real işlək sxemi göstərmək. Brend: eyni sistem,
++indiki canlı səhifə Al Balı (`@al.bali.az`); Master NR 1 üçün yalnız bilik
++bazası dəyişir.
++
++**Kanal:** Instagram DM via ManyChat (Meta App Review gözləmədən).
++Addımlar: `INSTAGRAM_PILOT.md`.
++
++## Problem
++
++Tədris mərkəzinə DM/WhatsApp-dan eyni suallar gəlir (qiymət, qrup, ünvan).
++Gecə və qeydiyyat pikində cavab gecikir — reklam pullu sorğu itir.
++
++## Həll
++
++AI operator 24/7 ilk cavabı verir, qeydiyyat üçün ad+telefon toplayır,
++çətin sualı insana ötürür. Hər müəssisə ayrı tenant-dır.
++
++## Demo axını
++
++| # | Nə | Gözlənti | Hara bax |
++|---|---|---|---|
++| 1 | Admin → Businesses → Al Balı | Qiymət cədvəli (12.50–70 ₼) | `/admin/` |
++| 2 | Şəxsi IG-dən `@al.bali.az`-a: `salam` | 1 dəq içində Azərbaycan dilində cavab | Telefon |
++| 3 | `qiymət` | Süzmə/şanı cədvəli, çatdırılma | Telefon + `/inbox/` |
++| 4 | Ad + telefon + məhsul + metro | Qeydiyyat təsdiqi | Inbox → Sorğular |
++| 5 | `operatorla danışmaq istəyirəm` | Bot susur | `bot_paused` |
++
++WhatsApp test nömrəsi ehtiyat yoldur (token 24 saatlıq). Görüşdə əsas
++sübut Instagram-dır.
++
++## Növbəti addım (razılıqdan sonra)
++
++Master NR 1 Instagram Page ManyChat-ə bağlanır, `seed_masternr1` KB-si
++real qiymət/qrup/FAQ ilə doldurulur, operator paneli təlimi.
++
++## Görüş öncəsi checklist
++
++- [ ] `migrate` + `seed_albali` (token qeyd olunub)
++- [ ] `runserver 8055` + cloudflared `http://localhost:8055`
++- [ ] ManyChat External Request URL = cari tunnel + `/webhook/manychat/`
++- [ ] Groq açarı işləyir (kvota dolmayıb) — əvvəlcədən bir `curl` sınağı
++- [ ] Öz IG-dən Al Balı-ya test mesajı uğurlu olub
++- [ ] Inbox-da həmin söhbət görünür
+diff --git a/masternr1/INSTAGRAM_PILOT.md b/masternr1/INSTAGRAM_PILOT.md
+new file mode 100644
+index 0000000..632bb2d
+--- /dev/null
++++ b/masternr1/INSTAGRAM_PILOT.md
+@@ -0,0 +1,136 @@
++# Instagram DM piloru — ManyChat + MasterNR1
++
++Meta-nın `instagram_manage_messages` Advanced Access-i (App Review) olmadan
++real Instagram hesablarından gələn DM-lər Business API-yə **düşmür**. Bu,
++2026-07-29-da DVX-də təsdiqlənib. Ona görə canlı pilor **ManyChat relay**-dir:
++ManyChat Instagram-ı öz Advanced Access-i ilə oxuyur, mətni bizə POST edir,
++cavabı özü göndərir.
++
++Görüşdə göstəriləcək canlı səhifə: **Al Balı** (`@al.bali.az`) — admin sənindir,
++qiymət/FAQ realdır, sifariş kanalı yalnız DM-dir. Master NR 1 üçün eyni axın
++işləyir: yalnız `Business` + KB dəyişir.
++
++## 0. Nə lazımdır (səndən)
++
++| Nə | Qeyd |
++|---|---|
++| Instagram Professional + bağlı Facebook Page | Al Balı üçün artıq var |
++| ManyChat hesabı (Free kifayətdir) | manychat.com |
++| `GROQ_API_KEY` | console.groq.com — görüşdən əvvəl kvotaya bax |
++| cloudflared | n8n tuneli ilə eyni proqram |
++
++## 1. Lokal server + seed
++
++PyCharm terminalində (`masternr1` qovluğu):
++
++```bat
++.venv\Scripts\python manage.py migrate
++.venv\Scripts\python manage.py seed_albali
++.venv\Scripts\python manage.py runserver 8055
++```
++
++`seed_albali` çap etdiyi `manychat_token`-i kopyala (ManyChat-ə lazımdır).
++Operator: `albali` / `demopass123` — panel: http://127.0.0.1:8055/inbox/
++
++Master NR 1 brendi ilə eyni relay:
++
++```bat
++.venv\Scripts\python manage.py seed_masternr1
++.venv\Scripts\python manage.py enable_instagram_relay --slug=master-nr-1
++```
++
++## 2. HTTPS tunnel (Meta/ManyChat localhost qəbul etmir)
++
++İkinci terminal:
++
++```bat
++"C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://localhost:8055
++```
++
++Çıxışdakı `https://xxxx.trycloudflare.com` ünvanını götür.
++DEBUG rejimində boş `DJANGO_ALLOWED_HOSTS` artıq `*`-dır — hostname dəyişəndə
++.env yeniləməyə ehtiyac yoxdur.
++
++Lokal yoxlama (tokeni əvəz et):
++
++```bat
++curl -s -X POST http://127.0.0.1:8055/webhook/manychat/ -H "Content-Type: application/json" -H "X-Relay-Token: TOKEN" -d "{\"subscriber_id\":\"test-1\",\"text\":\"qiymet nedir?\"}"
++```
++
++JSON-da `reply` sahəsi dolu olmalıdır. Inbox-da söhbət görünməlidir.
++
++## 3. ManyChat — Instagram səhifəsini bağla
++
++1. [manychat.com](https://manychat.com) → Sign up / Log in (Facebook ilə).
++2. **Settings → Channels → Instagram** → **Connect Instagram**.
++3. Al Balı-nın bağlı olduğu Facebook Page-i seç, icazələri təsdiqlə.
++4. Status **Connected** olmalıdır. Instagram-da səhifəyə test DM yazanda
++   ManyChat → Audience-də subscriber görünür.
++
++## 4. ManyChat avtomatlaşdırması (Default Reply)
++
++**Automation → Rules** (və ya **Instagram → Default Reply**):
++
++Trigger: Instagram-da yeni mətn mesajı.
++
++Addımlar:
++
++1. **External Request**
++   - Method: `POST`
++   - URL: `https://xxxx.trycloudflare.com/webhook/manychat/`
++   - Headers:
++     - `Content-Type` = `application/json`
++     - `X-Relay-Token` = `seed_albali`-nin çap etdiyi token
++   - Body (JSON):
++
++```json
++{
++  "subscriber_id": "{{user_id}}",
++  "text": "{{last_input_text}}",
++  "first_name": "{{first_name}}",
++  "last_name": "{{last_name}}"
++}
++```
++
++   - Response mapping: `reply` → Custom Field `bot_reply`
++     (ManyChat-də əvvəl Custom Field yarat: `bot_reply`, type Text)
++
++2. **Send Message** → `{{bot_reply}}`
++
++   *Alternativ:* External Request-i **Dynamic Content** kimi işlət — cavab
++   artıq ManyChat v2 formatındadır (`content.messages`). Bu halda 2-ci addım
++   lazım deyil.
++
++3. Publish / Activate.
++
++**Vacib:** eyni mesajı həm Default Reply, həm də başqa Live Chat operatoru
++cavablamasın. Pilot zamanı ManyChat Inbox-da auto-reply aktiv qalsın.
++
++## 5. Canlı sınaq (görüşdən əvvəl)
++
++1. Öz şəxsi Instagram-ından `@al.bali.az`-a yaz: `salam`
++2. Bot qiymət/çarə haqqında qısa cavab verməlidir (KB-dən).
++3. `qiymət` yaz → süzmə/şanı cədvəli.
++4. `1 kq süzmə, adım Aysel, telefon 0501234567, 28 May metrosu` →
++   qeydiyyat + (Telegram qoşulubsa) qrup bildirişi.
++5. http://127.0.0.1:8055/inbox/ — söhbət və `CustomerRequest` görünməlidir.
++
++Uğursuzdursa **mesaj mətninə güvənmə**. Yoxla:
++
++- Django konsolu: 200 vs 403 (yanlış token) vs DisallowedHost
++- ManyChat Request log (External Request status)
++- DB: `Message` yazıları
++- Groq: `rate_limit_exceeded` / `tool_use_failed`
++
++## 6. Görüşdə nə göstərirsən (10 dəq)
++
++1. Telefonda canlı: şəxsi IG → Al Balı DM → bot cavabı.
++2. Laptopda `/inbox/` eyni söhbət.
++3. Admin-də Al Balı KB (qiymət cədvəli).
++4. Cümlə: *Master NR 1 üçün kod dəyişmir. Sizin Instagram Page + öz
++   proqram/qiymət cədvəliniz. ManyChat-də səhifəni dəyişmək 15 dəqiqədir.*
++
++## 7. Tunel düşəndə
++
++cloudflared quick tunnel URL-i hər restartda dəyişir. Yeni URL-i ManyChat
++External Request-ə yapışdır. Daimi ünvan üçün Faza 5 (`bot.prdostu.com`).
+diff --git a/masternr1/businesses/admin.py b/masternr1/businesses/admin.py
+index 9257dd7..2ee5b65 100644
+--- a/masternr1/businesses/admin.py
++++ b/masternr1/businesses/admin.py
+@@ -20,8 +20,19 @@ class FAQItemInline(admin.TabularInline):
+ 
+ @admin.register(Business)
+ class BusinessAdmin(admin.ModelAdmin):
+-    list_display = ("name", "slug", "is_active", "phone", "created_at")
++    list_display = (
++        "name",
++        "slug",
++        "is_active",
++        "phone",
++        "has_manychat",
++        "created_at",
++    )
+     list_filter = ("is_active",)
+     search_fields = ("name", "slug")
+     prepopulated_fields = {"slug": ("name",)}
+     inlines = [ServiceInline, StaffMemberInline, FAQItemInline]
++
++    @admin.display(boolean=True, description="ManyChat")
++    def has_manychat(self, obj):
++        return bool(obj.manychat_token)
+diff --git a/masternr1/businesses/management/commands/enable_instagram_relay.py b/masternr1/businesses/management/commands/enable_instagram_relay.py
+new file mode 100644
+index 0000000..d017964
+--- /dev/null
++++ b/masternr1/businesses/management/commands/enable_instagram_relay.py
+@@ -0,0 +1,66 @@
++"""Mövcud tenant üçün ManyChat Instagram relay tokenini aktivləşdirir.
++
++İstifadə:
++    python manage.py enable_instagram_relay --slug=al-bali
++    python manage.py enable_instagram_relay --slug=master-nr-1 --rotate
++"""
++
++import secrets
++
++from django.core.management.base import BaseCommand, CommandError
++
++from businesses.models import Business
++
++
++class Command(BaseCommand):
++    help = "Business.manychat_token təyin edir və webhook quraşdırma mətnini çap edir"
++
++    def add_arguments(self, parser):
++        parser.add_argument("--slug", required=True, help="Business.slug")
++        parser.add_argument(
++            "--token",
++            default="",
++            help="Verilməsə mövcud token saxlanır, yoxdursa yenisi yaranır",
++        )
++        parser.add_argument(
++            "--rotate",
++            action="store_true",
++            help="Mövcud tokeni yenisi ilə əvəz et",
++        )
++
++    def handle(self, *args, **opts):
++        try:
++            business = Business.objects.get(slug=opts["slug"])
++        except Business.DoesNotExist as exc:
++            raise CommandError(f"slug={opts['slug']} tapılmadı") from exc
++
++        token = opts["token"].strip()
++        if opts["rotate"] or not (token or business.manychat_token):
++            token = token or secrets.token_urlsafe(24)
++        else:
++            token = token or business.manychat_token
++
++        business.manychat_token = token
++        business.is_active = True
++        business.save(update_fields=["manychat_token", "is_active"])
++
++        self.stdout.write(
++            self.style.SUCCESS(
++                f"OK: '{business.name}' Instagram ManyChat relay aktivdir.\n"
++                f"  slug: {business.slug}\n"
++                f"  manychat_token: {token}\n\n"
++                "ManyChat External Request:\n"
++                "  URL: https://<cloudflared-host>/webhook/manychat/\n"
++                "  Method: POST\n"
++                "  Header: X-Relay-Token = yuxarıdakı token\n"
++                "  Body JSON: "
++                '{"subscriber_id": "{{user_id}}", "text": "{{last_input_text}}",'
++                ' "first_name": "{{first_name}}"}\n'
++                "  Cavab sahəsi: reply  (və ya Dynamic Content: content.messages)\n\n"
++                "Lokal sınaq:\n"
++                f'  curl -s -X POST http://127.0.0.1:8055/webhook/manychat/ \\\n'
++                f'    -H "Content-Type: application/json" \\\n'
++                f'    -H "X-Relay-Token: {token}" \\\n'
++                '    -d \'{"subscriber_id":"test-1","text":"salam"}\'\n'
++            )
++        )
+diff --git a/masternr1/businesses/management/commands/seed_albali.py b/masternr1/businesses/management/commands/seed_albali.py
+new file mode 100644
+index 0000000..390c6c3
+--- /dev/null
++++ b/masternr1/businesses/management/commands/seed_albali.py
+@@ -0,0 +1,170 @@
++"""Al Balı (@al.bali.az) — canlı Instagram DM piloru.
++
++Sifariş kanalı yalnız Instagram DM-dir; qiymətlər postlarda yazılmır.
++Meta Advanced Access olmadan mesajlar ManyChat relay ilə gəlir.
++
++İstifadə:
++    python manage.py seed_albali
++    python manage.py seed_albali --manychat-token <öz-tokenin>
++
++Qaytarılan `manychat_token`-i ManyChat External Request-də
++X-Relay-Token header-i kimi yaz (bax: INSTAGRAM_PILOT.md).
++"""
++
++import secrets
++
++from django.contrib.auth.models import User
++from django.core.management.base import BaseCommand
++
++from businesses.models import Business, FAQItem, Service
++from inbox.models import BusinessMembership
++
++
++class Command(BaseCommand):
++    help = "Al Balı Instagram DM piloru üçün tenant və ManyChat tokeni yaradır"
++
++    def add_arguments(self, parser):
++        parser.add_argument(
++            "--manychat-token",
++            default="",
++            help="Boşdursa təsadüfi token generasiya olunur (yalnız yeni/yeniləmə üçün)",
++        )
++        parser.add_argument("--username", default="albali")
++        parser.add_argument("--password", default="demopass123")
++
++    def handle(self, *args, **opts):
++        existing = Business.objects.filter(slug="al-bali").first()
++        token = opts["manychat_token"].strip()
++        if not token:
++            token = (existing.manychat_token if existing and existing.manychat_token else "") or secrets.token_urlsafe(24)
++
++        business, created = Business.objects.update_or_create(
++            slug="al-bali",
++            defaults={
++                "name": "Al Balı",
++                "address": "Laçın — Oğuldərə kəndi (Bakı metrolarına çatdırılma)",
++                "phone": "",
++                "working_hours_text": "Sifariş: Instagram DM, hər gün",
++                "extra_info": (
++                    "Laçın — Oğuldərə kəndində, dəniz səviyyəsindən 2441 metr "
++                    "yüksəklikdə dağ çiçəklərindən hazırlanan təbii bal. "
++                    "Heç bir əlavəsi yoxdur. Vaxt keçdikcə xarlanması (bərkiməsi) "
++                    "təbiidir — bu, təbii balın əlamətidir. "
++                    "Sifariş yalnız Instagram DM-də qəbul olunur. "
++                    "Stok məhduddur — admin-dən aktual kq-ı yoxla."
++                ),
++                "staff_label": "Komanda",
++                "guardrail_text": (
++                    "Tibbi müalicə, diaqnoz və ya xəstəliyə şəfa vədi vermə. "
++                    "Balın faydaları haqqında yalnız ümumi, ehtiyatlı danış; "
++                    "konkret xəstəlik üçün 'müalicə edir' demə — operatora yönləndir. "
++                    "Stokda olmayan miqdarı vəd etmə. Qiyməti uydurma — yalnız "
++                    "aşağıdakı cədvəldəki rəqəmləri de."
++                ),
++                "manychat_token": token,
++                "is_active": True,
++            },
++        )
++
++        business.services.all().delete()
++        Service.objects.bulk_create(
++            [
++                Service(
++                    business=business,
++                    name="Süzmə bal, 250 qr",
++                    price_text="12.50 ₼",
++                    description="Mumdan ayrılmış, çaya və yeməyə rahat.",
++                ),
++                Service(
++                    business=business,
++                    name="Süzmə bal, 500 qr",
++                    price_text="25 ₼",
++                ),
++                Service(
++                    business=business,
++                    name="Süzmə bal, 1 kq",
++                    price_text="50 ₼",
++                ),
++                Service(
++                    business=business,
++                    name="Şanı (pətək) bal, 250 qr",
++                    price_text="17.50 ₼",
++                    description="Pətəkdən çıxdığı kimi, mumu ilə; mumu da yeyilir.",
++                ),
++                Service(
++                    business=business,
++                    name="Şanı (pətək) bal, 500 qr",
++                    price_text="35 ₼",
++                ),
++                Service(
++                    business=business,
++                    name="Şanı (pətək) bal, 1 kq",
++                    price_text="70 ₼",
++                ),
++            ]
++        )
++
++        business.faq_items.all().delete()
++        FAQItem.objects.bulk_create(
++            [
++                FAQItem(
++                    business=business,
++                    question="Şanı ilə süzmə fərqi nədir?",
++                    answer=(
++                        "İkisi də eyni pətəkdən, eyni arılardan gəlir — fərq yalnız "
++                        "formadadır. Şanı bal pətəkdən çıxdığı kimi, mumu ilə birlikdə "
++                        "olur. Süzmə bal isə mumdan ayrılmış haldadır. İlk dəfə "
++                        "alırsınızsa, çox vaxt süzmədən başlamağı məsləhət görürük."
++                    ),
++                ),
++                FAQItem(
++                    business=business,
++                    question="Çatdırılma necədir?",
++                    answer=(
++                        "Bakı metrolarına çatdırılma ödənişsizdir. Uyğun metro "
++                        "stansiyasını deyin, orada görüşürük. Metrodan kənar ünvanlar "
++                        "üçün variantı ayrıca danışırıq."
++                    ),
++                ),
++                FAQItem(
++                    business=business,
++                    question="Bal təbiidirmi? Xarlanırsa xarabdır?",
++                    answer=(
++                        "Bal Laçın — Oğuldərə kəndində, öz arı təsərrüfatımızda "
++                        "hazırlanır. Heç bir əlavəsi yoxdur. Xarlanması (bərkiməsi) "
++                        "təbiidir — bu, təbii balın əlamətidir."
++                    ),
++                ),
++                FAQItem(
++                    business=business,
++                    question="Necə sifariş edim?",
++                    answer=(
++                        "Adınızı, məhsulu (şanı və ya süzmə), qramı (250 qr / 500 qr / "
++                        "1 kq) və çatdırılma üçün metro adını yazın — qeydiyyata salırıq."
++                    ),
++                ),
++            ]
++        )
++
++        user, _ = User.objects.get_or_create(
++            username=opts["username"],
++            defaults={"is_staff": True, "is_superuser": False},
++        )
++        user.set_password(opts["password"])
++        user.is_staff = True
++        user.save()
++        BusinessMembership.objects.get_or_create(user=user, business=business)
++
++        action = "yaradıldı" if created else "yeniləndi"
++        self.stdout.write(
++            self.style.SUCCESS(
++                f"OK: Al Balı {action}.\n"
++                f"  slug: al-bali\n"
++                f"  operator: {opts['username']} / {opts['password']}\n"
++                f"  manychat_token: {business.manychat_token}\n"
++                "ManyChat-də External Request URL: "
++                "<tunnel>/webhook/manychat/\n"
++                "Header: X-Relay-Token: yuxarıdakı token\n"
++                "Addımlar: INSTAGRAM_PILOT.md"
++            )
++        )
+diff --git a/masternr1/businesses/management/commands/seed_masternr1.py b/masternr1/businesses/management/commands/seed_masternr1.py
+index 0c0aeeb..e997121 100644
+--- a/masternr1/businesses/management/commands/seed_masternr1.py
++++ b/masternr1/businesses/management/commands/seed_masternr1.py
+@@ -11,6 +11,8 @@ whatsapp_phone_number_id ilə tək-tək axtarılır), ona görə köhnə demo-de
+ müəssisəsinin nömrəsi bu skriptdə boşaldılır.
+ """
+ 
++import secrets
++
+ from django.contrib.auth.models import User
+ from django.core.management.base import BaseCommand
+ 
+@@ -29,6 +31,11 @@ class Command(BaseCommand):
+         )
+         parser.add_argument("--username", default="masternr1")
+         parser.add_argument("--password", default="demopass123")
++        parser.add_argument(
++            "--manychat-token",
++            default="",
++            help="Instagram ManyChat relay üçün token (boşdursa mövcud/təsadüfi)",
++        )
+ 
+     def handle(self, *args, **opts):
+         # Eyni test nömrəsi ilə routing konflikti olmasın deyə köhnə demo
+@@ -37,6 +44,15 @@ class Command(BaseCommand):
+             whatsapp_phone_number_id=opts["phone_number_id"]
+         ).exclude(slug="master-nr-1").update(whatsapp_phone_number_id="")
+ 
++        existing = Business.objects.filter(slug="master-nr-1").first()
++        mc_token = opts["manychat_token"].strip()
++        if not mc_token:
++            mc_token = (
++                existing.manychat_token
++                if existing and existing.manychat_token
++                else secrets.token_urlsafe(24)
++            )
++
+         business, created = Business.objects.update_or_create(
+             slug="master-nr-1",
+             defaults={
+@@ -45,6 +61,7 @@ class Command(BaseCommand):
+                 "phone": "",  # TODO: görüşdən sonra doldur
+                 "working_hours_text": "B.e-Şənbə 10:00-19:00",  # TODO: dəqiqləşdir
+                 "whatsapp_phone_number_id": opts["phone_number_id"],
++                "manychat_token": mc_token,
+                 "extra_info": (
+                     "Magistratura, Doktorantura və Dövlət Qulluğu imtahanlarına "
+                     "hazırlıq kursları. Yüzlərlə uğurlu məzun."
+@@ -119,6 +136,7 @@ class Command(BaseCommand):
+             self.style.SUCCESS(
+                 f"OK: '{business.name}' (phone_number_id={business.whatsapp_phone_number_id}); "
+                 f"operator: {opts['username']} / {opts['password']}\n"
++                f"manychat_token: {business.manychat_token}\n"
+                 "DİQQƏT: qiymət/ünvan/FAQ sahələri PLACEHOLDER-dir — "
+                 "Django admin-dən real məlumatla doldur."
+             )
+diff --git a/masternr1/businesses/tests.py b/masternr1/businesses/tests.py
+index 7622123..0e84738 100644
+--- a/masternr1/businesses/tests.py
++++ b/masternr1/businesses/tests.py
+@@ -1,3 +1,4 @@
++from django.core.management import call_command
+ from django.test import TestCase
+ 
+ from .models import Business, FAQItem, Service, StaffMember
+@@ -48,3 +49,19 @@ class BusinessModelTests(TestCase):
+             business=business, name="Köhnə", price_text="5 AZN", is_active=False
+         )
+         self.assertEqual(business.services.filter(is_active=True).count(), 1)
++
++
++class InstagramRelayCommandTests(TestCase):
++    def test_seed_albali_sets_token_and_prices(self):
++        call_command("seed_albali", manychat_token="mc-albali-test")
++        business = Business.objects.get(slug="al-bali")
++        self.assertEqual(business.manychat_token, "mc-albali-test")
++        self.assertTrue(business.services.filter(name__icontains="Süzmə").exists())
++        self.assertTrue(business.faq_items.exists())
++
++    def test_enable_instagram_relay_rotate(self):
++        business = make_business(slug="demo-ig", manychat_token="old-token")
++        call_command("enable_instagram_relay", slug="demo-ig", rotate=True)
++        business.refresh_from_db()
++        self.assertTrue(business.manychat_token)
++        self.assertNotEqual(business.manychat_token, "old-token")
+diff --git a/masternr1/channels/manychat.py b/masternr1/channels/manychat.py
+new file mode 100644
+index 0000000..c4c344c
+--- /dev/null
++++ b/masternr1/channels/manychat.py
+@@ -0,0 +1,53 @@
++"""ManyChat External Request / Dynamic Content köməkçiləri.
++
++Meta App Review (instagram_manage_messages Advanced Access) keçilənə qədər
++Instagram DM-lər ManyChat üzərindən gəlir. ManyChat-in gövdə formatı axın
++quraşdırmasından asılıdır — bir neçə ümumi variantı qəbul edirik.
++"""
++
++from __future__ import annotations
++
++
++def extract_fields(payload: dict) -> tuple[str, str, str]:
++    """(subscriber_id, text, display_name) çıxarır.
++
++    ManyChat Custom User Field / External Request gövdələri fərqli açarlar
++    işlədir: `subscriber_id`, `last_input_text`, iç-içə `subscriber.id` və s.
++    """
++    subscriber = payload.get("subscriber") if isinstance(payload.get("subscriber"), dict) else {}
++    subscriber_id = str(
++        payload.get("subscriber_id")
++        or payload.get("id")
++        or payload.get("user_id")
++        or subscriber.get("id")
++        or ""
++    ).strip()
++
++    text = str(
++        payload.get("text")
++        or payload.get("last_input_text")
++        or payload.get("last_text_input")
++        or payload.get("message")
++        or payload.get("last_input")
++        or ""
++    ).strip()
++
++    first = str(payload.get("first_name") or subscriber.get("first_name") or "").strip()
++    last = str(payload.get("last_name") or subscriber.get("last_name") or "").strip()
++    name = " ".join(part for part in (first, last) if part)
++    return subscriber_id, text, name
++
++
++def build_response(reply: str) -> dict:
++    """Həm sadə `reply` sahəsi, həm ManyChat Dynamic Content v2 formatı.
++
++    ManyChat axını iki cür qurula bilər:
++    - External Request → `{{response.reply}}` custom field-ə yaz, sonra Send Message
++    - Dynamic Content: birbaşa `content.messages` oxunur
++    """
++    messages = [{"type": "text", "text": reply}] if reply else []
++    return {
++        "reply": reply,
++        "version": "v2",
++        "content": {"messages": messages},
++    }
+diff --git a/masternr1/channels/tests.py b/masternr1/channels/tests.py
+index b7f0101..8ac7ac0 100644
+--- a/masternr1/channels/tests.py
++++ b/masternr1/channels/tests.py
+@@ -10,6 +10,7 @@ from assistant.models import Conversation, Message
+ from businesses.models import Business
+ 
+ from . import fixtures_payloads as fx
++from . import manychat
+ from .parsing import parse_webhook
+ from .signature import verify_signature
+ 
+@@ -21,6 +22,19 @@ def sign(body: bytes, secret: str = APP_SECRET) -> str:
+     return "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+ 
+ 
++class ManychatParseTests(TestCase):
++    def test_extract_prefers_last_input_text(self):
++        sid, text, name = manychat.extract_fields(
++            {"id": "u1", "last_input_text": "salam", "first_name": "Elvin"}
++        )
++        self.assertEqual((sid, text, name), ("u1", "salam", "Elvin"))
++
++    def test_build_response_omits_messages_when_empty(self):
++        body = manychat.build_response("")
++        self.assertEqual(body["reply"], "")
++        self.assertEqual(body["content"]["messages"], [])
++
++
+ class SignatureTests(TestCase):
+     def test_valid_signature_passes(self):
+         body = b'{"hello":"world"}'
+@@ -272,3 +286,47 @@ class ManychatWebhookTests(TestCase):
+         self.assertEqual(resp.status_code, 200)
+         self.assertIn("mətn", resp.json()["reply"].lower())
+         mock_reply.assert_not_called()
++
++    @patch("channels.views.generate_reply", return_value="Salam!")
++    def test_last_input_text_alias(self, mock_reply):
++        resp = self._post(
++            {"subscriber_id": "sub-9", "last_input_text": "qiymət nədir?"}
++        )
++        self.assertEqual(resp.status_code, 200)
++        self.assertEqual(resp.json()["reply"], "Salam!")
++        mock_reply.assert_called_once()
++        conv = Conversation.objects.get()
++        self.assertEqual(conv.messages.first().text, "qiymət nədir?")
++
++    @patch("channels.views.generate_reply", return_value="cavab")
++    def test_nested_subscriber_and_name(self, mock_reply):
++        resp = self._post(
++            {
++                "subscriber": {"id": "ig-22", "first_name": "Aysel"},
++                "text": "salam",
++            }
++        )
++        self.assertEqual(resp.status_code, 200)
++        conv = Conversation.objects.get()
++        self.assertEqual(conv.external_user_id, "ig-22")
++        self.assertEqual(conv.customer_name, "Aysel")
++
++    @patch("channels.views.generate_reply", return_value="Salam, bal!")
++    def test_manychat_dynamic_content_shape(self, mock_reply):
++        resp = self._post({"subscriber_id": "sub-1", "text": "salam"})
++        body = resp.json()
++        self.assertEqual(body["version"], "v2")
++        self.assertEqual(
++            body["content"]["messages"],
++            [{"type": "text", "text": "Salam, bal!"}],
++        )
++
++    def test_paused_dynamic_content_has_no_messages(self):
++        Conversation.objects.create(
++            business=self.business,
++            channel=Conversation.Channel.INSTAGRAM,
++            external_user_id="sub-1",
++            bot_paused=True,
++        )
++        resp = self._post({"subscriber_id": "sub-1", "text": "Salam"})
++        self.assertEqual(resp.json()["content"]["messages"], [])
+diff --git a/masternr1/channels/views.py b/masternr1/channels/views.py
+index 18f46a8..14e7c78 100644
+--- a/masternr1/channels/views.py
++++ b/masternr1/channels/views.py
+@@ -12,6 +12,7 @@ from assistant.models import Conversation, Message
+ from assistant.responder import generate_reply
+ from businesses.models import Business
+ 
++from . import manychat
+ from .signature import verify_signature
+ from .tasks import NON_TEXT_FALLBACK, process_incoming_payload
+ 
+@@ -75,16 +76,18 @@ def manychat_webhook(request):
+     except (ValueError, UnicodeDecodeError):
+         return HttpResponse(status=400)
+ 
+-    subscriber_id = str(payload.get("subscriber_id") or "").strip()
++    subscriber_id, text, display_name = manychat.extract_fields(payload)
+     if not subscriber_id:
+         return HttpResponse(status=400)
+-    text = str(payload.get("text") or "").strip()
+ 
+     conversation, _ = Conversation.objects.get_or_create(
+         business=business,
+         channel=Conversation.Channel.INSTAGRAM,
+         external_user_id=subscriber_id,
+     )
++    if display_name and not conversation.customer_name:
++        conversation.customer_name = display_name
++        conversation.save(update_fields=["customer_name"])
+ 
+     if text:
+         Message.objects.create(
+@@ -93,11 +96,11 @@ def manychat_webhook(request):
+ 
+     # Operator ələ alıbsa bot susur — boş cavabda ManyChat heç nə göndərmir
+     if conversation.bot_paused:
+-        return JsonResponse({"reply": ""})
++        return JsonResponse(manychat.build_response(""))
+ 
+     reply = generate_reply(conversation) if text else NON_TEXT_FALLBACK
+ 
+     Message.objects.create(
+         conversation=conversation, role=Message.Role.BOT, text=reply
+     )
+-    return JsonResponse({"reply": reply})
++    return JsonResponse(manychat.build_response(reply))
+diff --git a/masternr1/config/settings.py b/masternr1/config/settings.py
+index f9bcd6b..a51c26e 100644
+--- a/masternr1/config/settings.py
++++ b/masternr1/config/settings.py
+@@ -28,6 +28,10 @@ SECRET_KEY = os.getenv(
+ DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() == 'true'
+ 
+ ALLOWED_HOSTS = [h for h in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if h]
++# Lokal cloudflared tunnel hostname hər restartda dəyişir — DEBUG-də boş
++# siyahı webhook-u 400 DisallowedHost ilə kəsməsin.
++if DEBUG and not ALLOWED_HOSTS:
++    ALLOWED_HOSTS = ["*"]
+ 
+ 
+ # Application definition
+diff --git a/masternr1/start-instagram-tunnel.bat b/masternr1/start-instagram-tunnel.bat
+new file mode 100644
+index 0000000..b3fef19
+--- /dev/null
++++ b/masternr1/start-instagram-tunnel.bat
+@@ -0,0 +1,3 @@
++@echo off
++REM MasterNR1 Instagram ManyChat webhook — HTTPS tunnel (port 8055)
++"C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://localhost:8055
+-- 
+2.43.0
+
